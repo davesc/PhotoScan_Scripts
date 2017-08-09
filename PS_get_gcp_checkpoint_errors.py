@@ -16,59 +16,65 @@ print('\nrunning:\n    PS_get_gcp_checkpoint_errors.py\n')
 for chunk in PhotoScan.app.document.chunks:
 
     print('Processing chunk: {}'.format(chunk.label))
-    print('Enabling all markers')
+#     print('Enabling all markers')
     outfile.write('chunk = {}\n'.format(chunk.label))
 
-    # enable all the markers
-    for marker in chunk.markers:
-        marker.reference.enabled = True
+#     marker_list = []
+#     # check which markers are enabled
+#     for marker in chunk.markers:
+#         marker_list.append(marker.reference.enabled)
 
     errorList = []
     errorList2 = []
     markerList = []
     for marker in chunk.markers:
-        print('processing marker:', marker.label)
-        markerList.append(marker.label)
-        # turn off the marker to find the error
-        marker.reference.enabled = False
-        # re-optimize the cameras without the marker
-        chunk.optimizeCameras(
-            fit_f=True,
-            fit_cxcy=True,
-            fit_b1=True,
-            fit_b2=True,
-            fit_k1k2k3=True,
-            fit_p1p2=True,
-            fit_k4=True,
-            fit_p3=False,
-            fit_p4=False)
-        # get the error
-        # measured values in geocentric coordinates
-        source = chunk.crs.unproject(marker.reference.location)
-        # estimated coordinates in geocentric coordinates
-        estim = chunk.transform.matrix.mulp(marker.position)
-        local = chunk.crs.localframe(
-            chunk.transform.matrix.mulp(
-                marker.position))  # local LSE coordinates
-        error = local.mulv(estim - source)  # error at the GCP marker
-        errorList.append(error.norm())  # list of errors
-        errorList2.append(error.norm()**2)  # list of squared errors
-        # turn the marker back on
-        marker.reference.enabled = True
-        outfile.write(
-            '   marker {}:  error = {}\n'.format(marker.label, error.norm()))
-        outfile.flush()
+        if marker.reference.enabled and marker.projections.values():
+            print('processing marker:', marker.label)
+           #  print(['marker.position',marker.position])
+#             print(['marker.projections.items()',marker.projections.items()])
+#             print(['marker.projections.values()',marker.projections.values()])
+            markerList.append(marker.label)
+            # turn off the marker to find the error
+            marker.reference.enabled = False
+            # print(['marker.position',marker.position])
+#             print(['marker.projections.items()',marker.projections.items()])
+#             print(['marker.projections.values()',marker.projections.values()])
+            # re-optimize the cameras without the marker
+            # TODO: figure out how to use the last users selected parameters in Optimize cameras
+            chunk.optimizeCameras()
+            #     fit_f=True,
+#                 fit_cxcy=True,
+#                 fit_b1=True,
+#                 fit_b2=True,
+#                 fit_k1k2k3=True,
+#                 fit_p1p2=True,
+#                 fit_k4=True,
+#                 fit_p3=False,
+#                 fit_p4=False)
+            # get the error
+            # measured values in geocentric coordinates
+            source = chunk.crs.unproject(marker.reference.location)
+            # estimated coordinates in geocentric coordinates
+            estim = chunk.transform.matrix.mulp(marker.position)
+            local = chunk.crs.localframe(
+                chunk.transform.matrix.mulp(
+                    marker.position))  # local LSE coordinates
+            error = local.mulv(estim - source)  # error at the GCP marker
+            errorList.append(error.norm())  # list of errors
+            errorList2.append(error.norm()**2)  # list of squared errors
+            # turn the marker back on
+            marker.reference.enabled = True
+            outfile.write(
+                '   marker {}:  error = {}\n'.format(marker.label, error.norm()))
+            outfile.flush()
+        elif marker.reference.enabled and not marker.projections.values():
+            print('Marker {} not processed, no projections'.format(marker.label))
 
     suma = sum(errorList2)
     n = len(errorList)
     rmsError = (suma / n)**0.5
 
-    # write the errors to the console
-    for ii, nm in enumerate(markerList):
-        print('marker {}:  error = {}'.format(marker.label, errorList[ii]))
-
     # write the RMS error
-    print('total rms error in chunk {} = {}\n'.format(chunk.label, rmsError))
     outfile.write('\n   RMS = {}\n\n\n'.format(rmsError))
     outfile.flush()
 
@@ -84,8 +90,17 @@ for chunk in PhotoScan.app.document.chunks:
         fit_p3=False,
         fit_p4=False)
     print('\n')
+    
+    # write the errors to the console
+    print('\nErrors for chunk {}:'.format(chunk.label))
+    for ii, nm in enumerate(markerList):
+        print('marker {}:  error = {}'.format(nm, errorList[ii]))
+    print('\n total rms error in chunk {} = {}\n'.format(chunk.label, rmsError))
 
 outfile.close()
+
+
+
 
 print('Errors written to file: {}{}'.format(fName, '_ERRORS.txt'))
 
