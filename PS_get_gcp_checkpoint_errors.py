@@ -13,6 +13,29 @@ outfile.write('PhotoScan file: {}\n\n'.format(fName))
 
 print('\nrunning:\n    PS_get_gcp_checkpoint_errors.py\n')
 
+
+def getOptimizeParams(chunk):
+    paramList = ['f',
+                 'cx',
+                 'cy',
+                 'b1',
+                 'b2',
+                 'k1',
+                 'k2',
+                 'k3',
+                 'k4',
+                 'p1',
+                 'p2',
+                 'p3',
+                 'p4']  # this is missing 'fit_shutter' 
+    paramDict = {}
+    for ii, param in enumerate(paramList):
+        tf = not(getattr(chunk.sensors[0].calibration,param)==0)
+        paramDict['fit_{}'.format(param)] = tf
+    paramDict['fit_shutter'] = False
+    return paramDict
+
+
 for chunk in PhotoScan.app.document.chunks:
 
     print('Processing chunk: {}'.format(chunk.label))
@@ -40,8 +63,12 @@ for chunk in PhotoScan.app.document.chunks:
 #             print(['marker.projections.items()',marker.projections.items()])
 #             print(['marker.projections.values()',marker.projections.values()])
             # re-optimize the cameras without the marker
-            # TODO: figure out how to use the last users selected parameters in Optimize cameras
-            chunk.optimizeCameras()
+            # TODO: figure out how to use the last users selected parameters in 
+            #       Optimize cameras
+            # This guesses the current optimize params from the adjusted calibration,
+            # but doens't include the rolling shutter (set to False)
+            optimizeParamsDict = getOptimizeParams(chunk)
+            chunk.optimizeCameras(**optimizeParamsDict)
             #     fit_f=True,
 #                 fit_cxcy=True,
 #                 fit_b1=True,
@@ -79,16 +106,16 @@ for chunk in PhotoScan.app.document.chunks:
     outfile.flush()
 
     # re-optimize the cameras with all markers enabled
-    chunk.optimizeCameras(
-        fit_f=True,
-        fit_cxcy=True,
-        fit_b1=True,
-        fit_b2=True,
-        fit_k1k2k3=True,
-        fit_p1p2=True,
-        fit_k4=True,
-        fit_p3=False,
-        fit_p4=False)
+    chunk.optimizeCameras(**optimizeParamsDict)  
+#         fit_f=True,
+#         fit_cxcy=True,
+#         fit_b1=True,
+#         fit_b2=True,
+#         fit_k1k2k3=True,
+#         fit_p1p2=True,
+#         fit_k4=True,
+#         fit_p3=False,
+#         fit_p4=False)
     print('\n')
     
     # write the errors to the console
