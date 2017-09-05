@@ -15,6 +15,8 @@ print('\nrunning:\n    PS_get_gcp_checkpoint_errors.py\n')
 
 
 def getOptimizeParams(chunk):
+    # TODO: trying getting params here instead:
+    #            PhotoScan.app.document.chunk.meta['optimize/fit_flags']
     paramList = ['f',
                  'cx',
                  'cy',
