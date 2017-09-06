@@ -17,6 +17,12 @@ print('\nrunning:\n    PS_get_gcp_checkpoint_errors.py\n')
 def getOptimizeParams(chunk):
     # TODO: trying getting params here instead:
     #            PhotoScan.app.document.chunk.meta['optimize/fit_flags']
+    
+    # this section checks the camera calibration for non-zero parameters.
+    # There are some problems with this because PhotoScan doesn't zero out parameters
+    # when you unselect them in optimizeCameras, so this will choose all previous
+    # parameters you've used
+    '''
     paramList = ['f',
                  'cx',
                  'cy',
@@ -36,7 +42,37 @@ def getOptimizeParams(chunk):
         paramDict['fit_{}'.format(param)] = tf
     paramDict['fit_shutter'] = False
     return paramDict
-
+    '''
+    # get enabled optimizeCamera parameters from chunk.meta
+    paramList = ['f',
+                 'cx',
+                 'cy',
+                 'b1',
+                 'b2',
+                 'k1',
+                 'k2',
+                 'k3',
+                 'k4',
+                 'p1',
+                 'p2',
+                 'p3',
+                 'p4',
+                 'shutter']
+    enabledList = chunk.meta['optimize/fit_flags']
+    enabledList2 = enabledList.split()
+    paramDict = {}
+    for param in paramList:
+        if param in enabledList2:
+            paramDict['fit_{}'.format(param)] = True
+        else:
+            paramDict['fit_{}'.format(param)] = False
+#     print('enabledList = '+enabledList)
+#     print('paramDict = ')
+    for a, b in paramDict.items():
+        print(a,b)
+    return paramDict        
+    
+    
 
 for chunk in PhotoScan.app.document.chunks:
 
