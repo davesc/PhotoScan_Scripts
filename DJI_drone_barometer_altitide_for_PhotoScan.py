@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # DJI_drone_barometer_altitide_for_PhotoScan(input_directory, output_file_name, [-recursive]) 
 # Grab barometer altitude from DJI jpegs and create 
 # a text file to use them with Agisoft PhotoScan.
