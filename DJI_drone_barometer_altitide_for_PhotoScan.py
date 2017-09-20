@@ -11,29 +11,32 @@
 import glob
 import sys
 from PIL import Image
-
+import argparse 
 
 
 def get_exif_gps(image):
     exif = image._getexif()
     gps_out = {'lat':float('nan'), 'lon':float('nan'), 'alt':float('nan')}
     if exif:
-        # latitude in decimal degrees
-        gps_out['lat'] = (float(exif[34853][2][0][0])/float(exif[34853][2][0][1])
+        try:
+            # latitude in decimal degrees
+            gps_out['lat'] = (float(exif[34853][2][0][0])/float(exif[34853][2][0][1])
                         + float(exif[34853][2][1][0])/float(exif[34853][2][1][1])/60
                         + float(exif[34853][2][2][0])/float(exif[34853][2][2][1])/3600)
-        if exif[34853][1][0][0] == 'N':
-            gps_out['lat'] = -gps_out['lat']
-        # longitude in decimal degrees
-        gps_out['lon'] = (float(exif[34853][4][0][0])/float(exif[34853][4][0][1])
+            if exif[34853][1][0][0] == 'N':
+                gps_out['lat'] = -gps_out['lat']
+            # longitude in decimal degrees
+            gps_out['lon'] = (float(exif[34853][4][0][0])/float(exif[34853][4][0][1])
                         + float(exif[34853][4][1][0])/float(exif[34853][4][1][1])/60
                         + float(exif[34853][4][2][0])/float(exif[34853][4][2][1])/3600)
-        if exif[34853][3][0][0] == 'W':
-            gps_out['lon'] = -gps_out['lon']
-        # gps altitude in m
-        gps_out['alt'] = float(exif[34853][6][0])/float(exif[34853][6][1])
-        if exif[34853][5][0] == 1:
-            gps_out['alt'] = -gps_out['alt']
+            if exif[34853][3][0][0] == 'W':
+                gps_out['lon'] = -gps_out['lon']
+            # gps altitude in m
+            gps_out['alt'] = float(exif[34853][6][0])/float(exif[34853][6][1])
+            if exif[34853][5][0] == 1:
+                gps_out['alt'] = -gps_out['alt']
+        except:
+            print('{}: could not find GPS data'.format(fname))
     return gps_out
 
 
@@ -43,21 +46,38 @@ def get_xmp_dji(image):
     for chunk, content in image.applist:
         id, __ = content.split(b'\x00', 1)
         if id == b'http://ns.adobe.com/xap/1.0/' and chunk == 'APP1':
-            c = str(content)
-            # relative altitude from takeoff in meters, using barometer
-            dji['rel_alt'] = (
-                float(c.split('drone-dji:RelativeAltitude=\"')[1].split('\"')[0]))
-            # gimble yaw degrees
-            dji['yaw'] = (
-                float(c.split('drone-dji:GimbalYawDegree=\"')[1].split('\"')[0]))
-            # gimble pitch degrees
-            dji['pitch'] = (
-                float(c.split('drone-dji:GimbalPitchDegree=\"')[1].split('\"')[0]))
-            # gimble roll degrees
-            dji['roll'] = (
-                float(c.split('drone-dji:GimbalRollDegree=\"')[1].split('\"')[0]))
+            try:
+                c = str(content)
+                # relative altitude from takeoff in meters, using barometer
+                dji['rel_alt'] = (
+                    float(c.split('drone-dji:RelativeAltitude=\"')[1].split('\"')[0]))
+                # gimble yaw degrees
+                dji['yaw'] = (
+                    float(c.split('drone-dji:GimbalYawDegree=\"')[1].split('\"')[0]))
+                # gimble pitch degrees
+                dji['pitch'] = (
+                    float(c.split('drone-dji:GimbalPitchDegree=\"')[1].split('\"')[0]))
+                # gimble roll degrees
+                dji['roll'] = (
+                    float(c.split('drone-dji:GimbalRollDegree=\"')[1].split('\"')[0]))
+            except:
+                print('{}: could not find DJI altitude or gimbal data'.format(fname))
     return dji
 
+
+parser = argparse.ArgumentParser(description='This script pulls GPS data, DJI gimbal '
+                                   +'data, and DJI relative altitude from DJI jpegs and '
+                                   +'stores them in a text file for easy input into '
+                                   +'Agisoft PhotoScan',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('-r', '--recursive', action='store_true', dafault=False, 
+                    help='search for DJI jpegs recursively')
+parser.add_argument('-i', '--input',action='store',type=str,default='./',
+                    help=('input directory to search for DJI jepgs (recursively with -r), '
+                            +'or an input filename'))
+parser.add_argument('-o','--output', action='store',type=str,
+                    default='[output_directory]/DJI_camera_poses.txt',
+                    help='file path/name for output text file')              
 
 fname  = sys.argv[1]
 with Image.open(fname) as im:
