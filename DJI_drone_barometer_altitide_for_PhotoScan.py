@@ -83,6 +83,13 @@ parser.add_argument('-i', '--input',action='store',type=str,default='./',
 parser.add_argument('-o','--output', action='store',type=str,
                     default='[output_directory]/DJI_camera_poses.txt',
                     help='file path/name for output text file') 
+parser.add_argument('-e','--elevation', action='store',type=float,
+                    default=0,
+                    help=('elevation offset for the relative (barometer) altitide, '
+                         +'generally this is the drone takeoff elevation and converts '
+                         +'realtive altitide to a georefferenced elevation. Note: this '
+                         +'is only useful if you used the same takeoff location for '
+                         +'all the images you process at one time.'))
                     
 input_args = parser.parse_args()                                 
 
@@ -126,5 +133,6 @@ with open(fname_out,'w') as fout:
             gps = get_exif_gps(im)
             fout.write('{}, {:.7f}, {:.7f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}\n'.format(
                  os.path.abspath(file), gps['lat'], gps['lon'], gps['alt'], 
-                 dji['rel_alt'], dji['yaw'], dji['pitch'], dji['roll']))
+                 dji['rel_alt']+input_args.elevation, dji['yaw'], dji['pitch'], 
+                 dji['roll']))
 
