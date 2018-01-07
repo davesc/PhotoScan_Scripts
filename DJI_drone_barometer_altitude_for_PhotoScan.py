@@ -96,7 +96,7 @@ input_args = parser.parse_args()
 
 # get the file names
 path = input_args.input
-# I think this should work on a Windoze machine ... not sure, I hatez windoze  
+# I think this should work on a Windoze machine ... not tested  
 if path=='./' or path=='.':
     path = os.getcwd()
 if path[-1]=='/':
